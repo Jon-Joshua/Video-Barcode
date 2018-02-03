@@ -40,8 +40,6 @@ def parse_video(file):
 
     while video.isOpened():
         for frame in frame_list:
-            print(frame)
-
             # Set frame to next in frame list and break if not valid frame.
             video.set(1, frame)
             ret, frame = video.read()
