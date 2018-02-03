@@ -1,21 +1,17 @@
 from PIL import Image, ImageDraw
-import os
-import sys
-import getopt
 import cv2
 from math import trunc
-from progressbarsimple import ProgressBar
+import argparse
 
-output_x = 200
-output_y = 20
-
+output_x = 2000
+output_y = 200
 
 def parse_video(file):
 
-    image_list = []
-
+    # OpenCV2 video object.
     video = cv2.VideoCapture(file)
 
+    # Open CV FPS + Frame Count codes.
     CV_CAP_PROP_FPS = 5
     CV_CAP_PROP_FRAME_COUNT = 7
 
@@ -28,39 +24,52 @@ def parse_video(file):
     h, m = divmod(m, 60)
 
     frames_per_pixel = int(total_frames / output_x)
+    total_snaps = int(total_frames / frames_per_pixel)
 
     print('Running time: {:d}:{:d}:{:d}'.format(trunc(h), trunc(m), trunc(s)))
-    print('Framerate: %d' % (frame_rate))
-    print('Total Frames: %d' % (total_frames))
+    print('Framerate: {:d}'.format(frame_rate))
+    print('Total Frames: {:d}'.format(total_frames))
     print('-----------------------------------')
-    print('Taking a snapshot every %d frames' % (frames_per_pixel))
+    print('Taking a snapshot every {:d} frames for a total of {:d} snapshots'.format(frames_per_pixel, total_snaps))
 
-    myProgressBar = ProgressBar(nElements=30, nIterations=total_frames)
+    image_list = []
 
-    # Parse through video and take snapshots.
+    # Create list of all frames that need to be grabbed.
+    frame_list = create_frame_list(total_frames, frames_per_pixel)
+    last_frame = frame_list[-1]
+
     while video.isOpened():
-        for x in range(total_frames):
-            if x == (total_frames - 1):
-                myProgressBar.finished = True
-                return image_list
-            if x % round(frames_per_pixel) == 0:
-                # print(x)
-                video.set(1, x)
-                ret, frame = video.read()
-                if ret is False:
-                    print('fuck')
-                    break
-                cv2_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                pil_image = Image.fromarray(cv2_image)
-                pil_image = pil_image.convert('RGB')
-                size = 150, 150
-                pil_image.thumbnail(size, Image.ANTIALIAS)
+        for frame in frame_list:
+            print(frame)
 
-                image_list.append(pil_image)
-                myProgressBar.progress(x)
-    print('Total of %d snapshots taken' % (len(image_list)))
-    video.release()
+            # Set frame to next in frame list and break if not valid frame.
+            video.set(1, frame)
+            ret, frame = video.read()
+            if ret is False:
+                break
+
+            # Create 150 x 150 thumbnail of frame so we don't use all the memory.
+            cv2_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(cv2_image)
+            pil_image = pil_image.convert('RGB')
+            size = 150, 150
+            pil_image.thumbnail(size, Image.ANTIALIAS)
+
+            image_list.append(pil_image)
+
+        video.release()
+
+    print('Total of {:d} snapshots taken'.format(len(image_list)))
     return image_list
+
+
+def create_frame_list(total_frames, frames_per_pixel):
+    # Save all numbers that have no remainder from when divided by frames_per_pixel.
+    frame_list = []
+    for x in range(total_frames):
+        if x % frames_per_pixel == 0:
+            frame_list.append(x)
+    return frame_list
 
 
 def get_average_colour(img):
@@ -85,16 +94,11 @@ def draw_line(img, colour, x):
     draw.line((x, 500, x, 0), colour)
 
 
-def main(argv):
-
-    if not argv:
-        print('No file specified.')
-        exit()
-
-    input_video = argv[0]
+def main(args):
+    input_video = args.video
     split_list = input_video.split('\\')[-1]
 
-    print('Starting on ' + split_list)
+    print('Starting on {}'.format(split_list))
 
     image_list = parse_video(input_video)
     colour_list = []
@@ -117,4 +121,9 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+
+    parse = argparse.ArgumentParser()
+    parse.add_argument('-v', '--video', help='Video file path.')
+    args = parse.parse_args()
+
+    main(args)

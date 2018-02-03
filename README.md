@@ -1,15 +1,18 @@
 ## Video Barcoder
 
 This makes 'barcodes' out of video files by taking the average colour of frames.
+
+To change the output size, change `output_x` and `output_y` in `barcoder.py`
+Please note that the barcodes may take a while to process depending on the output file size.
+
 Check out some of the examples.
 
 Requirements:
-* Python 2.7
+* Python 3.6
 * OpenCV
-* FFmpeg
-* PIL
+* Pillow
 
-Usage: `python barcoder.py <video file>`
+Usage: `python barcoder.py -v <video file>`
 
 ## Examples
 
